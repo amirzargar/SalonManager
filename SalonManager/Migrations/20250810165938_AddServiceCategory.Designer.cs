@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace SalonManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250810165938_AddServiceCategory")]
+    partial class AddServiceCategory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -418,15 +421,10 @@ namespace SalonManager.Migrations
             modelBuilder.Entity("SalonManager.Models.Services", b =>
                 {
                     b.HasOne("SalonManager.Models.ServiceCategory", "Category")
-                        .WithMany("Services")
+                        .WithMany()
                         .HasForeignKey("CategoryId");
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("SalonManager.Models.ServiceCategory", b =>
-                {
-                    b.Navigation("Services");
                 });
 #pragma warning restore 612, 618
         }
