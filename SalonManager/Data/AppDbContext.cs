@@ -13,4 +13,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Staff> Staffs { get; set; }
     public DbSet<ServiceCategory> ServiceCategories { get; set; }
 
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<Booking>()
+            .HasOne(b => b.Customer)
+            .WithMany(u => u.Bookings)
+            .HasForeignKey(b => b.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Staff>()
+            .HasOne(s => s.ApplicationUser)
+            .WithOne(u => u.StaffProfile)
+            .HasForeignKey<Staff>(s => s.ApplicationUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+
+
+
 }
