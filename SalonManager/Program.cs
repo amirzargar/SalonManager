@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using SalonManager.Models;
+using SalonManager.EmailServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,17 +10,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<AppDbContext>();
-
-// Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+// Identity (only register ONCE to avoid duplicate scheme error)
+builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
+    options.SignIn.RequireConfirmedAccount = true;
     options.Password.RequiredLength = 6;
 })
+.AddRoles<IdentityRole>() // if you plan to use roles
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+// Email sender service
+builder.Services.AddSingleton<IEmailSender, DummyEmailSender>();
+
+// MVC + Razor Pages
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
@@ -33,7 +41,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -41,5 +48,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapRazorPages(); // Enables Identity UI pages like /Account/Login
+app.MapRazorPages();
+
 app.Run();
