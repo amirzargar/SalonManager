@@ -1,9 +1,11 @@
-using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalonManager.Models;
+using System.Diagnostics;
 
 namespace SalonManager.Controllers
 {
+    [AllowAnonymous]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;

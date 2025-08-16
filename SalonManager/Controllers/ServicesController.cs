@@ -8,10 +8,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting; // Needed for IWebHostEnvironment
-
+using Microsoft.AspNetCore.Authorization; //to use [Authorize] attribute
 
 namespace SalonManager.Controllers
 {
+
+    [Authorize]
     public class ServicesController : Controller
     {
         private readonly AppDbContext _context;
@@ -24,6 +26,7 @@ namespace SalonManager.Controllers
         }
 
         // GET: Services
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
             var services = _context.Services
@@ -36,6 +39,7 @@ namespace SalonManager.Controllers
 
 
         // GET: Services/Details/5
+        [Authorize]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -53,7 +57,10 @@ namespace SalonManager.Controllers
             return View(services);
         }
 
+
+
         // GET: Services/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             ViewData["CategoryId"] = new SelectList(_context.ServiceCategories, "Id", "Name");  // Populate categories for dropdown
@@ -65,6 +72,7 @@ namespace SalonManager.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,Name,Price,DurationMinutes,Description,CategoryId")] Services services, IFormFile ImageFile)
         {
             if (ModelState.IsValid)
@@ -92,6 +100,7 @@ namespace SalonManager.Controllers
         }
 
         // GET: Services/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -113,6 +122,7 @@ namespace SalonManager.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Price,DurationMinutes,Description,CategoryId")] Services services, IFormFile ImageFile)
         {
             if (id != services.Id)
@@ -167,6 +177,7 @@ namespace SalonManager.Controllers
         }
 
         // GET: Services/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -187,6 +198,7 @@ namespace SalonManager.Controllers
         // POST: Services/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var services = await _context.Services.FindAsync(id);
