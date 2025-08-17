@@ -25,6 +25,13 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Services" asp-action="Index">Services</a>
                         </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="UserManagement" asp-action="Index">User Management</a>
+                            </li>
+                        }
+
                         <partial name="_LoginPartial" />
                     </ul>
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using SalonManager.Models;
+using System.Collections.Generic;
 
+namespace SalonManager.Models { 
 public class ApplicationUser : IdentityUser
 {
     public string? DisplayName { get; set; }
@@ -8,4 +9,5 @@ public class ApplicationUser : IdentityUser
     public virtual ICollection<Booking>? Bookings { get; set; }   // Navigation property for bookings
     public virtual Staff? StaffProfile { get; set; }           // Navigation property for staff profile
 
+}
 }

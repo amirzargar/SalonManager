@@ -1,0 +1,41 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<SalonManager.Models.ApplicationUser> UserManager
+
+<h2>User Management (Admin Only)</h2>
+<table class="table">
+    <tr>
+        <th>Email</th>
+        <th>Display Name</th>
+        <th>Roles</th>
+        <th>Assign/Remove Role</th>
+    </tr>
+    @foreach (var user in Model)
+    {
+        var roles = await UserManager.GetRolesAsync(user);
+        <tr>
+            <td>@user.Email</td>
+            <td>@user.DisplayName</td>
+            <td>@string.Join(", ", roles)</td>
+            <td>
+                <form asp-action="AssignRole" asp-controller="UserManagement" method="post" style="display:inline;">
+                    <input type="hidden" name="userId" value="@user.Id" />
+                    <select name="role">
+                        <option value="Admin">Admin</option>
+                        <option value="Staff">Staff</option>
+                        <option value="Customer">Customer</option>
+                    </select>
+                    <button class="btn btn-primary" type="submit">Assign</button>
+                </form>
+                <form asp-action="RemoveRole" asp-controller="UserManagement" method="post" style="display:inline;">
+                    <input type="hidden" name="userId" value="@user.Id" />
+                    <select name="role">
+                        <option value="Admin">Admin</option>
+                        <option value="Staff">Staff</option>
+                        <option value="Customer">Customer</option>
+                    </select>
+                    <button class="btn btn-danger" type="submit">Remove</button>
+                </form>
+            </td>
+        </tr>
+    }
+</table>

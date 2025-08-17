@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using SalonManager.Models;
+
 
 namespace SalonManager.Areas.Identity.Pages.Account.Manage
 {
