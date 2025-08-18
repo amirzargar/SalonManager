@@ -1,11 +1,9 @@
 @model SalonManager.Models.Booking
-
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Create Booking";
 }
 
 <h1>Create Booking</h1>
-
 <h4>Booking Details</h4>
 <hr />
 <div class="row">
@@ -13,13 +11,7 @@
         <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            <div class="form-group mb-3">
-                <label asp-for="CustomerId" class="form-label"></label>
-                <select asp-for="CustomerId" class="form-control" asp-items="ViewBag.Customers">
-                    <option value="">-- Select Customer --</option>
-                </select>
-                <span asp-validation-for="CustomerId" class="text-danger"></span>
-            </div>
+            @* CustomerId is set by backend; no input for it here *@
 
             <div class="form-group mb-3">
                 <label asp-for="ServiceId" class="form-label"></label>
@@ -76,7 +68,5 @@
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 }

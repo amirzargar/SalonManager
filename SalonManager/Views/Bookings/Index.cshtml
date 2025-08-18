@@ -1,71 +1,58 @@
 @model IEnumerable<SalonManager.Models.Booking>
-
+@using System.Security.Claims
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Bookings";
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
-<h1>Index</h1>
+<h1>Bookings</h1>
 
 <p>
-    <a asp-action="Create">Create New</a>
+    @if (User.IsInRole("Customer") || User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" class="btn btn-primary">Create New</a>
+    }
 </p>
+
 <table class="table">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.ServiceId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StaffId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.StartAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EndAt)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Notes)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Customer)
-            </th>
-            <th></th>
+            <th>Service</th>
+            <th>Staff</th>
+            <th>Start At</th>
+            <th>End At</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Customer</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.ServiceId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StaffId)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StartAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EndAt)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Notes)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Customer.Id)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@(item.Service != null ? item.Service.Name : "N/A")</td>
+                <td>@(item.Staff != null ? item.Staff.Name : "N/A")</td>
+                <td>@item.StartAt.ToString("g")</td>
+                <td>@item.EndAt.ToString("g")</td>
+                <td>@item.Status</td>
+                <td>@item.Notes</td>
+                <td>@(item.Customer != null ? item.Customer.Email : "N/A")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
+                    @if (
+                                    User.IsInRole("Admin") ||
+                                    (User.IsInRole("Customer") && item.CustomerId == userId) ||
+                                    (User.IsInRole("Staff") && item.Staff != null && item.Staff.ApplicationUserId == userId)
+                                    )
+                    {
+                        <text>
+                            | <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                            | <a asp-action="Delete" asp-route-id="@item.Id" onclick="return confirm('Are you sure you want to delete this booking?');">Delete</a>
+                        </text>
+                    }
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

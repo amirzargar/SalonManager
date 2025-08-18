@@ -1,27 +1,20 @@
 @model SalonManager.Models.Booking
 @using Microsoft.AspNetCore.Mvc.Rendering;
-
 @{
     ViewData["Title"] = "Edit Booking";
 }
 
 <h1>Edit Booking</h1>
-
 <h4>Booking Details</h4>
 <hr />
+
 <div class="row">
     <div class="col-md-6">
         <form asp-action="Edit" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
 
-            <div class="form-group mb-3">
-                <label asp-for="CustomerId" class="form-label"></label>
-                <select asp-for="CustomerId" class="form-control" asp-items="ViewBag.Customers">
-                    <option value="">-- Select Customer --</option>
-                </select>
-                <span asp-validation-for="CustomerId" class="text-danger"></span>
-            </div>
+            @* CustomerId is set server-side and must not be exposed or editable in the form *@
 
             <div class="form-group mb-3">
                 <label asp-for="ServiceId" class="form-label"></label>
@@ -78,5 +71,6 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @await Html.PartialAsync("_ValidationScriptsPartial")
 }
+
