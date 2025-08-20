@@ -1,17 +1,41 @@
 @model SalonManager.Models.Booking
+@using Microsoft.AspNetCore.Identity
 @{
     ViewData["Title"] = "Create Booking";
+    bool isAdmin = User.IsInRole("Admin");
 }
 
 <h1>Create Booking</h1>
 <h4>Booking Details</h4>
 <hr />
+
 <div class="row">
     <div class="col-md-6">
+
+        @* Display success or error messages from TempData *@
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        }
+
         <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            @* CustomerId is set by backend; no input for it here *@
+            @* Only Admin can select the Customer; Customers get assigned automatically in backend *@
+            @if (isAdmin && ViewBag.Customers != null)
+            {
+                <div class="form-group mb-3">
+                    <label asp-for="CustomerId" class="form-label"></label>
+                    <select asp-for="CustomerId" class="form-control" asp-items="ViewBag.Customers">
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                    <span asp-validation-for="CustomerId" class="text-danger"></span>
+                </div>
+            }
 
             <div class="form-group mb-3">
                 <label asp-for="ServiceId" class="form-label"></label>
@@ -43,11 +67,8 @@
 
             <div class="form-group mb-3">
                 <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status" class="form-control">
-                    @foreach (var status in Enum.GetValues(typeof(SalonManager.Models.BookingStatus)))
-                    {
-                        <option value="@status">@status</option>
-                    }
+                <select asp-for="Status" class="form-control" asp-items="ViewBag.Statuses">
+                    <option value="">-- Select Status --</option>
                 </select>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>

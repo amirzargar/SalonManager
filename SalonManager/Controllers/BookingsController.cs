@@ -13,7 +13,6 @@ namespace SalonManager.Controllers
     public class BookingsController : Controller
     {
         private readonly AppDbContext _context;
-
         public BookingsController(AppDbContext context)
         {
             _context = context;
@@ -57,18 +56,15 @@ namespace SalonManager.Controllers
         {
             if (id == null)
                 return NotFound();
-
             var booking = await _context.Bookings
                 .Include(b => b.Customer)
                 .Include(b => b.Service)
                 .Include(b => b.Staff)
                 .FirstOrDefaultAsync(m => m.Id == id);
-
             if (booking == null)
                 return NotFound();
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
             if (User.IsInRole("Admin")) { }
             else if (User.IsInRole("Staff"))
             {
@@ -81,7 +77,6 @@ namespace SalonManager.Controllers
                 if (booking.CustomerId != userId)
                     return Forbid();
             }
-
             return View(booking);
         }
 
@@ -89,6 +84,13 @@ namespace SalonManager.Controllers
         public IActionResult Create()
         {
             PopulateDropdowns();
+
+            // Admin can select customer; others cannot
+            if (User.IsInRole("Admin"))
+            {
+                ViewBag.Customers = new SelectList(_context.Users, "Id", "Email");
+            }
+
             PopulateStatusDropdown();
             return View();
         }
@@ -96,25 +98,46 @@ namespace SalonManager.Controllers
         // POST: Bookings/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult>
-        Create([Bind("Id,ServiceId,StaffId,StartAt,EndAt,Status,Notes")] Booking booking)
+        public async Task<IActionResult> Create([Bind("Id,ServiceId,StaffId,StartAt,EndAt,Status,Notes,CustomerId")] Booking booking)
         {
-            // Assign booking to the current logged-in customer
-            booking.CustomerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
-            if (!ModelState.IsValid || !IsBookingTimeAvailable(booking))
+            // Assign CustomerId BEFORE ModelState validation for non-admins
+            if (!User.IsInRole("Admin"))
             {
-                if (!IsBookingTimeAvailable(booking))
-                {
-                    ModelState.AddModelError("", "Selected staff is not available for the chosen time slot.");
-                }
+                booking.CustomerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+
+                // Important: clear ModelState for CustomerId so validation recognizes new value
+                ModelState.Remove(nameof(booking.CustomerId));
+            }
+
+
+            if (!ModelState.IsValid)
+            {
+                var errors = string.Join(" | ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                TempData["ErrorMessage"] = "Model validation failed: " + errors;
+
                 PopulateDropdowns(booking);
+                if (User.IsInRole("Admin"))
+                    ViewBag.Customers = new SelectList(_context.Users, "Id", "Email", booking.CustomerId);
+                PopulateStatusDropdown(booking.Status);
+                return View(booking);
+            }
+
+            if (!IsBookingTimeAvailable(booking))
+            {
+                TempData["ErrorMessage"] = "Selected staff is not available for the chosen time slot.";
+                PopulateDropdowns(booking);
+                if (User.IsInRole("Admin"))
+                    ViewBag.Customers = new SelectList(_context.Users, "Id", "Email", booking.CustomerId);
                 PopulateStatusDropdown(booking.Status);
                 return View(booking);
             }
 
             _context.Add(booking);
             await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Booking created successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -128,7 +151,6 @@ namespace SalonManager.Controllers
                 return NotFound();
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
             if (User.IsInRole("Admin")) { }
             else if (User.IsInRole("Staff"))
             {
@@ -141,8 +163,11 @@ namespace SalonManager.Controllers
                 if (booking.CustomerId != userId)
                     return Forbid();
             }
-
             PopulateDropdowns(booking);
+            if (User.IsInRole("Admin"))
+            {
+                ViewBag.Customers = new SelectList(_context.Users, "Id", "Email", booking.CustomerId);
+            }
             PopulateStatusDropdown(booking.Status);
             return View(booking);
         }
@@ -150,18 +175,14 @@ namespace SalonManager.Controllers
         // POST: Bookings/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult>
-        Edit(int id, [Bind("Id,ServiceId,StaffId,StartAt,EndAt,Status,Notes")] Booking booking)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,ServiceId,StaffId,StartAt,EndAt,Status,Notes,CustomerId")] Booking booking)
         {
             if (id != booking.Id)
                 return NotFound();
-
             var originalBooking = await _context.Bookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
             if (originalBooking == null)
                 return NotFound();
-
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
             if (User.IsInRole("Admin")) { }
             else if (User.IsInRole("Staff"))
             {
@@ -173,21 +194,35 @@ namespace SalonManager.Controllers
             {
                 if (originalBooking.CustomerId != userId)
                     return Forbid();
+                booking.CustomerId = originalBooking.CustomerId;
             }
 
-            booking.CustomerId = originalBooking.CustomerId;  // Ensure customer not tampered with
-
-            if (!ModelState.IsValid || !IsBookingTimeAvailable(booking))
+            if (!ModelState.IsValid)
             {
-                if (!IsBookingTimeAvailable(booking))
-                {
-                    ModelState.AddModelError("", "Selected staff is not available for the chosen time slot.");
-                }
+                var errors = string.Join(" | ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+                TempData["ErrorMessage"] = "Edit validation failed: " + errors;
+
                 PopulateDropdowns(booking);
+                if (User.IsInRole("Admin"))
+                {
+                    ViewBag.Customers = new SelectList(_context.Users, "Id", "Email", booking.CustomerId);
+                }
                 PopulateStatusDropdown(booking.Status);
                 return View(booking);
             }
-
+            if (!IsBookingTimeAvailable(booking))
+            {
+                ModelState.AddModelError("", "Selected staff is not available for the chosen time slot.");
+                PopulateDropdowns(booking);
+                if (User.IsInRole("Admin"))
+                {
+                    ViewBag.Customers = new SelectList(_context.Users, "Id", "Email", booking.CustomerId);
+                }
+                PopulateStatusDropdown(booking.Status);
+                return View(booking);
+            }
             try
             {
                 _context.Update(booking);
@@ -200,6 +235,7 @@ namespace SalonManager.Controllers
                 else
                     throw;
             }
+            TempData["SuccessMessage"] = "Booking updated successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -208,18 +244,15 @@ namespace SalonManager.Controllers
         {
             if (id == null)
                 return NotFound();
-
             var booking = await _context.Bookings
                 .Include(b => b.Customer)
                 .Include(b => b.Service)
                 .Include(b => b.Staff)
                 .FirstOrDefaultAsync(m => m.Id == id);
-
             if (booking == null)
                 return NotFound();
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
             if (User.IsInRole("Admin")) { }
             else if (User.IsInRole("Staff"))
             {
@@ -232,7 +265,6 @@ namespace SalonManager.Controllers
                 if (booking.CustomerId != userId)
                     return Forbid();
             }
-
             return View(booking);
         }
 
@@ -246,7 +278,6 @@ namespace SalonManager.Controllers
                 return NotFound();
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-
             if (User.IsInRole("Admin")) { }
             else if (User.IsInRole("Staff"))
             {
@@ -259,9 +290,9 @@ namespace SalonManager.Controllers
                 if (booking.CustomerId != userId)
                     return Forbid();
             }
-
             _context.Bookings.Remove(booking);
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = "Booking deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -270,28 +301,25 @@ namespace SalonManager.Controllers
             return _context.Bookings.Any(e => e.Id == id);
         }
 
-        // Helper to populate dropdown lists for Service, Staff
         private void PopulateDropdowns(Booking? booking = null)
         {
-            // Do NOT expose customer dropdown to view; assign from backend only
             ViewBag.Services = new SelectList(_context.Services, "Id", "Name", booking?.ServiceId);
             ViewBag.Staffs = new SelectList(_context.Staffs.Where(s => s.IsActive), "Id", "Name", booking?.StaffId);
         }
-        // Helper to populate dropdown for BookingStatus enum
+
         private void PopulateStatusDropdown(BookingStatus? selectedStatus = null)
         {
             ViewBag.Statuses = new SelectList(Enum.GetValues(typeof(BookingStatus)), selectedStatus);
         }
-        // Simple booking time conflict checker (only checks staff availability)
+
         private bool IsBookingTimeAvailable(Booking booking)
         {
             if (!booking.StaffId.HasValue)
-                return true; // No staff assigned, assume available
+                return true;
             var conflictingBooking = _context.Bookings
                 .Where(b => b.Id != booking.Id && b.StaffId == booking.StaffId && b.Status != BookingStatus.Cancelled)
                 .FirstOrDefault(b =>
-                    (booking.StartAt < b.EndAt) && (booking.EndAt > b.StartAt)
-                );
+                    booking.StartAt < b.EndAt && booking.EndAt > b.StartAt);
             return conflictingBooking == null;
         }
     }
