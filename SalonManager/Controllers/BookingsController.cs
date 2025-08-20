@@ -85,7 +85,6 @@ namespace SalonManager.Controllers
         {
             PopulateDropdowns();
 
-            // Admin can select customer; others cannot
             if (User.IsInRole("Admin"))
             {
                 ViewBag.Customers = new SelectList(_context.Users, "Id", "Email");
@@ -100,15 +99,11 @@ namespace SalonManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,ServiceId,StaffId,StartAt,EndAt,Status,Notes,CustomerId")] Booking booking)
         {
-            // Assign CustomerId BEFORE ModelState validation for non-admins
             if (!User.IsInRole("Admin"))
             {
                 booking.CustomerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
-
-                // Important: clear ModelState for CustomerId so validation recognizes new value
                 ModelState.Remove(nameof(booking.CustomerId));
             }
-
 
             if (!ModelState.IsValid)
             {
@@ -136,7 +131,6 @@ namespace SalonManager.Controllers
 
             _context.Add(booking);
             await _context.SaveChangesAsync();
-
             TempData["SuccessMessage"] = "Booking created successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -179,22 +173,36 @@ namespace SalonManager.Controllers
         {
             if (id != booking.Id)
                 return NotFound();
+
             var originalBooking = await _context.Bookings.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
             if (originalBooking == null)
                 return NotFound();
+
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-            if (User.IsInRole("Admin")) { }
-            else if (User.IsInRole("Staff"))
+
+            if (!User.IsInRole("Admin"))
             {
-                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
-                if (originalBooking.StaffId != staff?.Id)
-                    return Forbid();
+                if (User.IsInRole("Staff"))
+                {
+                    var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
+                    if (originalBooking.StaffId != staff?.Id)
+                        return Forbid();
+                }
+                else if (User.IsInRole("Customer"))
+                {
+                    if (originalBooking.CustomerId != userId)
+                        return Forbid();
+
+                    booking.CustomerId = originalBooking.CustomerId;
+                    ModelState.Remove(nameof(booking.CustomerId));
+                }
             }
-            else if (User.IsInRole("Customer"))
+            else
             {
-                if (originalBooking.CustomerId != userId)
-                    return Forbid();
-                booking.CustomerId = originalBooking.CustomerId;
+                if (string.IsNullOrWhiteSpace(booking.CustomerId))
+                {
+                    ModelState.AddModelError("CustomerId", "The Customer field is required.");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -212,6 +220,7 @@ namespace SalonManager.Controllers
                 PopulateStatusDropdown(booking.Status);
                 return View(booking);
             }
+
             if (!IsBookingTimeAvailable(booking))
             {
                 ModelState.AddModelError("", "Selected staff is not available for the chosen time slot.");
@@ -223,6 +232,7 @@ namespace SalonManager.Controllers
                 PopulateStatusDropdown(booking.Status);
                 return View(booking);
             }
+
             try
             {
                 _context.Update(booking);
@@ -235,6 +245,7 @@ namespace SalonManager.Controllers
                 else
                     throw;
             }
+
             TempData["SuccessMessage"] = "Booking updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -278,20 +289,20 @@ namespace SalonManager.Controllers
                 return NotFound();
 
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
-            if (User.IsInRole("Admin")) { }
-            else if (User.IsInRole("Staff"))
+
+            if (User.IsInRole("Staff"))
             {
-                var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
-                if (booking.StaffId != staff?.Id)
-                    return Forbid();
+                return Forbid();
             }
-            else if (User.IsInRole("Customer"))
+
+            if (User.IsInRole("Customer") && booking.CustomerId != userId)
             {
-                if (booking.CustomerId != userId)
-                    return Forbid();
+                return Forbid();
             }
+
             _context.Bookings.Remove(booking);
             await _context.SaveChangesAsync();
+
             TempData["SuccessMessage"] = "Booking deleted successfully.";
             return RedirectToAction(nameof(Index));
         }

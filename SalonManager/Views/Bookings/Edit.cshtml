@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Mvc.Rendering;
 @{
     ViewData["Title"] = "Edit Booking";
+    bool isAdmin = User.IsInRole("Admin");
 }
 
 <h1>Edit Booking</h1>
@@ -14,7 +15,17 @@
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="Id" />
 
-            @* CustomerId is set server-side and must not be exposed or editable in the form *@
+            @* Show Customer dropdown ONLY for admins *@
+            @if (isAdmin && ViewBag.Customers != null)
+            {
+                <div class="form-group mb-3">
+                    <label asp-for="CustomerId" class="form-label"></label>
+                    <select asp-for="CustomerId" class="form-control" asp-items="ViewBag.Customers">
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                    <span asp-validation-for="CustomerId" class="text-danger"></span>
+                </div>
+            }
 
             <div class="form-group mb-3">
                 <label asp-for="ServiceId" class="form-label"></label>
@@ -73,4 +84,3 @@
 @section Scripts {
     @await Html.PartialAsync("_ValidationScriptsPartial")
 }
-
