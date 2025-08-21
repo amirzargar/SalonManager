@@ -250,6 +250,57 @@ namespace SalonManager.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // GET: Bookings/EditStatus/5
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> EditStatus(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var booking = await _context.Bookings
+                .Include(b => b.Customer)
+                .Include(b => b.Service)
+                .Include(b => b.Staff)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (booking == null)
+                return NotFound();
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
+            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
+            if (booking.StaffId != staff?.Id)
+                return Forbid();
+
+            // Only allow status and notes editing in view
+            ViewBag.Statuses = new SelectList(Enum.GetValues(typeof(BookingStatus)), booking.Status);
+            return View(booking);
+        }
+
+        // POST: Bookings/EditStatus/5
+        [HttpPost]
+        [Authorize(Roles = "Staff")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditStatus(int id, [Bind("Id,Status,Notes")] Booking updateBooking)
+        {
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id);
+            if (booking == null)
+                return NotFound();
+
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value;
+            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
+            if (booking.StaffId != staff?.Id)
+                return Forbid();
+
+            // Only update allowed fields
+            booking.Status = updateBooking.Status;
+            booking.Notes = updateBooking.Notes;
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Booking status updated.";
+            return RedirectToAction(nameof(Index));
+        }
+
         // GET: Bookings/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
