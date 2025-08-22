@@ -102,7 +102,11 @@ namespace SalonManager.Controllers
             if (!User.IsInRole("Admin"))
             {
                 booking.CustomerId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+                // Set default status to Pending for customers creating bookings
+                booking.Status = BookingStatus.Pending;
+
                 ModelState.Remove(nameof(booking.CustomerId));
+                ModelState.Remove(nameof(booking.Status));
             }
 
             if (!ModelState.IsValid)
@@ -194,7 +198,10 @@ namespace SalonManager.Controllers
                         return Forbid();
 
                     booking.CustomerId = originalBooking.CustomerId;
+                    booking.Status = originalBooking.Status; // Prevent status change by customer
+                    
                     ModelState.Remove(nameof(booking.CustomerId));
+                    ModelState.Remove(nameof(booking.Status));
                 }
             }
             else
